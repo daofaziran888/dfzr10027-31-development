@@ -27,6 +27,31 @@
       <button class="btn ghost" data-testid="reset" type="button" @click="resetFilters">重置条件</button>
     </form>
 
+    <section class="diff-sync" data-testid="diff-sync-panel">
+      <header class="diff-sync-head">
+        <h3>已确认版本差异报告</h3>
+        <button class="btn" data-testid="diff-sync-refresh" type="button" @click="loadPublishedReports">刷新已确认数据</button>
+      </header>
+      <p class="page-desc">只同步已发布报告冻结的两侧版本与阈值，汇总超阈值触点和金额，不混入其他归因版本的单侧数据。</p>
+      <table v-if="publishedReports.length" class="data-table">
+        <thead>
+          <tr>
+            <th v-for="column in diffColumns" :key="column">{{ column }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="report in publishedReports"
+            :key="String(report.id)"
+            :data-testid="`diff-report-row-${report.id}`"
+          >
+            <td v-for="column in diffColumns" :key="column">{{ formatDiffCell(report, column) }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-else class="empty-state">暂无可引用的已发布版本差异报告</p>
+    </section>
+
     <table class="data-table">
       <thead>
         <tr>
@@ -85,14 +110,18 @@ import { computed, onMounted, ref } from 'vue'
 import { request } from '@/api/client'
 
 type Row = Record<string, string | number | null>
+type DiffReportRow = Record<string, string | number | string[] | null>
 
 const ENDPOINT = '/api/report_gen'
+const PUBLISHED_DIFF_ENDPOINT = '/api/version_diff_report/published'
 const columns = ["报表编号", "报表类型", "数据范围", "包含图表", "生成周期", "输出格式", "分发渠道", "下次生成"]
 const actions = ["提交生成", "确认分发", "停用报表"]
 const statuses = ["草稿", "待生成", "已生成", "已停用"]
 const metricNames = ["报表总数", "已生成报表", "待生成报表"]
+const diffColumns = ["报告编号", "基准版本", "对照版本", "差异阈值", "超阈值触点", "超阈值触点数", "超阈值金额", "published_at"]
 
 const rows = ref<Row[]>([])
+const publishedReports = ref<DiffReportRow[]>([])
 const total = ref(0)
 const errorMessage = ref('')
 const filters = ref<Record<string, string>>({})
@@ -105,6 +134,24 @@ const stats = computed(() => [
   { label: metricNames[1], value: rows.value.filter((row) => row.status === statuses[1]).length },
   { label: metricNames[2], value: rows.value.filter((row) => row.status === statuses[statuses.length - 1]).length },
 ])
+
+function formatDiffCell(report: DiffReportRow, column: string): string {
+  const value = report[column]
+  if (Array.isArray(value)) return value.length ? value.join('、') : '—'
+  return value === null || value === undefined || value === '' ? '—' : String(value)
+}
+
+async function loadPublishedReports() {
+  errorMessage.value = ''
+  try {
+    const response = await request(PUBLISHED_DIFF_ENDPOINT)
+    if (!response.ok) throw new Error('已确认版本差异报告读取失败')
+    const payload = await response.json()
+    publishedReports.value = (payload.items ?? []) as DiffReportRow[]
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : '已确认版本差异报告读取失败'
+  }
+}
 
 function resetFilters() {
   filters.value = {}
@@ -184,5 +231,28 @@ async function reload() {
   }
 }
 
-onMounted(reload)
+onMounted(() => {
+  void reload()
+  void loadPublishedReports()
+})
 </script>
+
+<style scoped>
+.diff-sync {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+.diff-sync-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.diff-sync-head h3 {
+  margin: 0;
+  font-size: 15px;
+}
+</style>

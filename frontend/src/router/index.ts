@@ -17,6 +17,7 @@ const StatModel = () => import('@/views/stat_model/index.vue')
 const DataExtract = () => import('@/views/data_extract/index.vue')
 const QualityMon = () => import('@/views/quality_mon/index.vue')
 const CompareJob = () => import('@/views/compare_job/index.vue')
+const VersionDiffReport = () => import('@/views/version_diff_report/index.vue')
 const ApiService = () => import('@/views/api_service/index.vue')
 const SchedulePlan = () => import('@/views/schedule_plan/index.vue')
 
@@ -40,6 +41,7 @@ const router = createRouter({
     { path: '/data_extract', name: 'data_extract', component: DataExtract },
     { path: '/quality_mon', name: 'quality_mon', component: QualityMon },
     { path: '/compare_job', name: 'compare_job', component: CompareJob },
+    { path: '/version_diff_report', name: 'version_diff_report', component: VersionDiffReport },
     { path: '/api_service', name: 'api_service', component: ApiService },
     { path: '/schedule_plan', name: 'schedule_plan', component: SchedulePlan },
   ],

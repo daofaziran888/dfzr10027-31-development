@@ -51,6 +51,11 @@ store = Store()
 
 
 def reset_store() -> None:
-    """重新初始化全局 store，用于测试隔离。"""
-    global store
-    store = Store()
+    """重新初始化全局 store，用于测试隔离。
+
+    采用就地清空再回填而不是重新赋值：各 service 模块在导入时已经绑定了
+    ``store`` 名字，重新赋值会让它们继续指向旧实例，测试里产生的新数据就读不到。
+    """
+    fresh = Store()
+    store._tables.clear()
+    store._tables.update(fresh._tables)
